@@ -14,15 +14,15 @@ products = {
     "USB Charger": "usb",
     "Visor Extender": "tvs-apache-rtx-visor-extender-enhanced-wind-protection-stylish-upgrade",
     "Raised Fender": "raised-fender-1",
-    "Rear Hugger Fender": "rear-hugger-fender"
+    "Rear Hugger Fender": "rear-hugger-fender",
+    "top rack": "top-rack"
 }
 
 watch_for_alert = {
     "Tank Guard",
     "Aluminium Bash Plate",
-    "Speedometer Scratch Guard",
-    "Visor Extender",
-    "Raised Fender"
+    "Rear Hugger Fender",
+    "top rack"
 }
 
 def log(msg):
@@ -83,5 +83,5 @@ if __name__ == "__main__":
         else:
             log("❌ Nothing in stock")
 
-        log("⏳ Waiting 2 minutes...\n")
-        time.sleep(120)
+        log("⏳ Waiting 1 hour\n")
+        time.sleep(3600)
