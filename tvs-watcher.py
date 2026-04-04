@@ -29,8 +29,9 @@ watch_for_alert = {
 last_status = {}
 
 def log(msg):
-    print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] {msg}")
+    print(f"[{datetime.now().strftime('%H:%M:%S')}] {msg}")
 
+# ✅ FIXED SMTP (PORT 587)
 def send_email(subject, body):
     try:
         msg = MIMEText(body)
@@ -38,11 +39,12 @@ def send_email(subject, body):
         msg["From"] = EMAIL
         msg["To"] = TO_EMAIL
 
-        with smtplib.SMTP_SSL("smtp.gmail.com", 465, timeout=10) as server:
+        with smtplib.SMTP("smtp.gmail.com", 587, timeout=10) as server:
+            server.starttls()
             server.login(EMAIL, APP_PASSWORD)
             server.send_message(msg)
 
-        log("📧 Email SENT")
+        log("📧 EMAIL SENT")
 
     except Exception as e:
         log(f"❌ EMAIL FAILED: {e}")
@@ -58,27 +60,41 @@ def check_stock(name, handle):
         prev = last_status.get(name)
 
         if prev != available:
-            status = "AVAILABLE" if available else "OUT OF STOCK"
-            log(f"{name} → {status}")
             last_status[name] = available
-
-            # send email only when it becomes available
-            if available and name in watch_for_alert:
-                send_email(
-                    f"{name} IN STOCK 🚀",
-                    f"{name} is now available:\nhttps://shop.tvsmotor.com/products/{handle}"
-                )
+            return name, available
 
     except Exception as e:
         log(f"{name} ERROR: {e}")
 
+    return None, None
+
 # ===== MAIN LOOP =====
 if __name__ == "__main__":
-    log("🚀 Tracker Started")
+    log("🚀 Tracker Started\n")
 
     while True:
+        cycle_changes = []
+
         for name, handle in products.items():
-            check_stock(name, handle)
+            pname, status = check_stock(name, handle)
+
+            if pname is not None:
+                cycle_changes.append((pname, status))
+
+                # send email only when becomes available
+                if status and pname in watch_for_alert:
+                    send_email(
+                        f"{pname} IN STOCK 🚀",
+                        f"{pname} is now available:\nhttps://shop.tvsmotor.com/products/{handle}"
+                    )
+
+        # ✅ CLEAN LOG OUTPUT
+        if cycle_changes:
+            log("🔄 Changes detected:")
+            for n, s in cycle_changes:
+                log(f"   {n} → {'AVAILABLE' if s else 'OUT OF STOCK'}")
+        else:
+            log("✔ No changes")
 
         log("⏳ Waiting 2 minutes...\n")
         time.sleep(120)
