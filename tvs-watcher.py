@@ -4,10 +4,12 @@ from datetime import datetime
 import smtplib
 from email.mime.text import MIMEText
 
+# ===== EMAIL CONFIG =====
 EMAIL = "backup1charanteja@gmail.com"
-APP_PASSWORD = "dtegbahefstywige"
+APP_PASSWORD = "xulmuaeqfmlardif" 
 TO_EMAIL = "charanteja1290@gmail.com"
 
+# ===== PRODUCTS =====
 products = {
     "Tank Guard": "tank-guard",
     "Aluminium Bash Plate": "aluminium-bash-plate",
@@ -19,6 +21,7 @@ products = {
     "Rear Hugger Fender": "rear-hugger-fender"
 }
 
+# ===== ALERT LIST =====
 watch_for_alert = {
     "Tank Guard",
     "Aluminium Bash Plate",
@@ -28,10 +31,11 @@ watch_for_alert = {
 
 last_status = {}
 
+# ===== LOGGER =====
 def log(msg):
     print(f"[{datetime.now().strftime('%H:%M:%S')}] {msg}")
 
-# ✅ FIXED SMTP (PORT 587)
+# ===== EMAIL FUNCTION (FIXED SMTP) =====
 def send_email(subject, body):
     try:
         msg = MIMEText(body)
@@ -49,6 +53,7 @@ def send_email(subject, body):
     except Exception as e:
         log(f"❌ EMAIL FAILED: {e}")
 
+# ===== STOCK CHECK =====
 def check_stock(name, handle):
     try:
         url = f"https://shop.tvsmotor.com/products/{handle}.js"
@@ -81,14 +86,16 @@ if __name__ == "__main__":
             if pname is not None:
                 cycle_changes.append((pname, status))
 
-                # send email only when becomes available
+                # ✅ EMAIL TRIGGER
                 if status and pname in watch_for_alert:
+                    log(f"🚨 ALERT TRIGGERED for {pname}")
+
                     send_email(
                         f"{pname} IN STOCK 🚀",
-                        f"{pname} is now available:\nhttps://shop.tvsmotor.com/products/{handle}"
+                        f"{pname} is now available:\nhttps://shop.tvsmotor.com/products/{products[pname]}"
                     )
 
-        # ✅ CLEAN LOG OUTPUT
+        # ===== CLEAN LOG OUTPUT =====
         if cycle_changes:
             log("🔄 Changes detected:")
             for n, s in cycle_changes:
