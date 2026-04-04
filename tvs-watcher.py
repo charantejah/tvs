@@ -6,7 +6,6 @@ from datetime import datetime
 BOT_TOKEN = "8620495010:AAE339ct3WAg62O6BjTfqjI1iU2SFPvB9R4"
 CHAT_ID = "2059235733"
 
-# ===== PRODUCTS =====
 products = {
     "Tank Guard": "tank-guard",
     "Aluminium Bash Plate": "aluminium-bash-plate",
@@ -18,7 +17,6 @@ products = {
     "Rear Hugger Fender": "rear-hugger-fender"
 }
 
-# ===== ALERT PRODUCTS =====
 watch_for_alert = {
     "Tank Guard",
     "Aluminium Bash Plate",
@@ -26,13 +24,9 @@ watch_for_alert = {
     "Visor Extender"
 }
 
-last_status = {}
-
-# ===== LOGGER =====
 def log(msg):
     print(f"[{datetime.now().strftime('%H:%M:%S')}] {msg}")
 
-# ===== TELEGRAM FUNCTION =====
 def send_telegram(message):
     try:
         url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
@@ -45,7 +39,6 @@ def send_telegram(message):
     except Exception as e:
         log(f"❌ TELEGRAM ERROR: {e}")
 
-# ===== STOCK CHECK =====
 def check_stock(name, handle):
     try:
         url = f"https://shop.tvsmotor.com/products/{handle}.js"
@@ -54,45 +47,40 @@ def check_stock(name, handle):
         data = response.json()
         available = any(v.get("available", False) for v in data.get("variants", []))
 
-        prev = last_status.get(name)
-
-        if prev != available:
-            last_status[name] = available
-            return name, available
+        return available
 
     except Exception as e:
         log(f"{name} ERROR: {e}")
-
-    return None, None
+        return False
 
 # ===== MAIN LOOP =====
 if __name__ == "__main__":
     log("🚀 Tracker Started\n")
 
     while True:
-        cycle_changes = []
+        available_items = []
 
         for name, handle in products.items():
-            pname, status = check_stock(name, handle)
+            status = check_stock(name, handle)
 
-            if pname is not None:
-                cycle_changes.append((pname, status))
+            if status:
+                available_items.append(name)
 
-                # 🔔 ALERT
-                if status and pname in watch_for_alert:
-                    log(f"🚨 ALERT TRIGGERED for {pname}")
+                # 🚨 SPAM ALERT
+                if name in watch_for_alert:
+                    log(f"🚨 SPAM ALERT for {name}")
 
                     send_telegram(
-                        f"{pname} IN STOCK 🚀\nhttps://shop.tvsmotor.com/products/{products[pname]}"
+                        f"{name} STILL IN STOCK 🚀\nhttps://shop.tvsmotor.com/products/{handle}"
                     )
 
         # ===== CLEAN LOGS =====
-        if cycle_changes:
-            log("🔄 Changes detected:")
-            for n, s in cycle_changes:
-                log(f"   {n} → {'AVAILABLE' if s else 'OUT OF STOCK'}")
+        if available_items:
+            log("✅ Currently Available:")
+            for item in available_items:
+                log(f"   {item}")
         else:
-            log("✔ No changes")
+            log("❌ Nothing in stock")
 
         log("⏳ Waiting 2 minutes...\n")
         time.sleep(120)
