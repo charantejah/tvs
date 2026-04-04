@@ -6,6 +6,7 @@ from datetime import datetime
 BOT_TOKEN = "YOUR_NEW_TOKEN"
 CHAT_ID = "2059235733"
 
+# ===== PRODUCTS =====
 products = {
     "Tank Guard": "tank-guard",
     "Aluminium Bash Plate": "aluminium-bash-plate",
@@ -18,6 +19,7 @@ products = {
     "Top Rack": "top-rack"
 }
 
+# ===== IMPORTANT ITEMS =====
 watch_for_alert = {
     "Tank Guard",
     "Aluminium Bash Plate",
@@ -25,9 +27,14 @@ watch_for_alert = {
     "Top Rack"
 }
 
+last_status = {}
+last_summary_time = time.time()
+
+# ===== LOGGER =====
 def log(msg):
     print(f"[{datetime.now().strftime('%H:%M:%S')}] {msg}")
 
+# ===== TELEGRAM =====
 def send_telegram(message):
     try:
         url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
@@ -41,14 +48,13 @@ def send_telegram(message):
     except Exception as e:
         log(f"❌ TELEGRAM ERROR: {e}")
 
+# ===== STOCK CHECK =====
 def check_stock(name, handle):
     try:
         url = f"https://shop.tvsmotor.com/products/{handle}.js"
         response = requests.get(url, timeout=10)
-
         data = response.json()
         return any(v.get("available", False) for v in data.get("variants", []))
-
     except Exception as e:
         log(f"{name} ERROR: {e}")
         return False
@@ -58,38 +64,41 @@ if __name__ == "__main__":
     log("🚀 Tracker Started\n")
 
     while True:
-        available_items = []
-        message = "🔥 RTX 300 ACCESSORIES IN STOCK 🔥\n\n"
+        current_status = {}
 
+        # 🔁 CHECK EVERY 2 MIN
         for name, handle in products.items():
             status = check_stock(name, handle)
+            current_status[name] = status
 
-            if status:
-                available_items.append(name)
+            prev = last_status.get(name)
 
-                # add to message
-                message += f"• {name}\n"
-                message += f"https://shop.tvsmotor.com/products/{handle}\n\n"
-
-                # 🚨 spam alert for priority items
-                if name in watch_for_alert:
-                    log(f"🚨 SPAM ALERT for {name}")
+            # 🔔 ALERT ON CHANGE (only important items)
+            if name in watch_for_alert:
+                if prev is not None and prev != status:
+                    log(f"🚨 CHANGE DETECTED: {name}")
 
                     send_telegram(
-                        f"{name} STILL IN STOCK 🚀\nhttps://shop.tvsmotor.com/products/{handle}"
+                        f"{name} {'IN STOCK 🚀' if status else 'OUT OF STOCK ❌'}\n"
+                        f"https://shop.tvsmotor.com/products/{handle}"
                     )
 
-        # ===== SUMMARY MESSAGE =====
-        if available_items:
-            log("✅ Currently Available:")
-            for item in available_items:
-                log(f"   {item}")
+        last_status = current_status
 
-            # send full list once per cycle
-            send_telegram(message)
+        # ⏰ SUMMARY EVERY 30 MIN
+        if time.time() - last_summary_time >= 1800:
+            log("📊 Sending 30-min summary")
 
-        else:
-            log("❌ Nothing in stock")
+            msg = f"📊 RTX STOCK SUMMARY ({datetime.now().strftime('%H:%M:%S')})\n\n"
 
-        log("⏳ Waiting 1 hour\n")
-        time.sleep(3600)
+            for name, handle in products.items():
+                status = current_status.get(name, False)
+
+                msg += f"{'✅' if status else '❌'} {name}\n"
+                msg += f"https://shop.tvsmotor.com/products/{handle}\n\n"
+
+            send_telegram(msg)
+            last_summary_time = time.time()
+
+        log("⏳ Waiting 2 minutes...\n")
+        time.sleep(120)
