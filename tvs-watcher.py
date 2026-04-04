@@ -21,7 +21,8 @@ watch_for_alert = {
     "Tank Guard",
     "Aluminium Bash Plate",
     "Speedometer Scratch Guard",
-    "Visor Extender"
+    "Visor Extender",
+    "Raised Fender"
 }
 
 def log(msg):
