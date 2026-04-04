@@ -3,7 +3,7 @@ import time
 from datetime import datetime
 
 # ===== TELEGRAM CONFIG =====
-BOT_TOKEN = "YOUR_NEW_TOKEN"
+BOT_TOKEN = "8620495010:AAE339ct3WAg62O6BjTfqjI1iU2SFPvB9R4"
 CHAT_ID = "2059235733"
 
 # ===== PRODUCTS =====
