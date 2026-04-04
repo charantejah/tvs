@@ -48,16 +48,33 @@ def send_telegram(message):
     except Exception as e:
         log(f"❌ TELEGRAM ERROR: {e}")
 
-# ===== STOCK CHECK =====
+# ===== STOCK CHECK (FIXED) =====
 def check_stock(name, handle):
-    try:
-        url = f"https://shop.tvsmotor.com/products/{handle}.js"
-        response = requests.get(url, timeout=10)
-        data = response.json()
-        return any(v.get("available", False) for v in data.get("variants", []))
-    except Exception as e:
-        log(f"{name} ERROR: {e}")
-        return False
+    url = f"https://shop.tvsmotor.com/products/{handle}.js"
+
+    headers = {
+        "User-Agent": "Mozilla/5.0"
+    }
+
+    for attempt in range(2):  # retry once
+        try:
+            response = requests.get(url, headers=headers, timeout=10)
+
+            if response.status_code != 200:
+                continue
+
+            if not response.text.strip():
+                continue
+
+            data = response.json()
+            return any(v.get("available", False) for v in data.get("variants", []))
+
+        except Exception:
+            if attempt == 1:
+                log(f"{name} ERROR: Failed after retry")
+                return False
+
+    return False
 
 # ===== MAIN LOOP =====
 if __name__ == "__main__":
@@ -73,7 +90,7 @@ if __name__ == "__main__":
 
             prev = last_status.get(name)
 
-            # 🔔 ALERT ON CHANGE (only important items)
+            # 🔔 ALERT ON CHANGE (important items only)
             if name in watch_for_alert:
                 if prev is not None and prev != status:
                     log(f"🚨 CHANGE DETECTED: {name}")
