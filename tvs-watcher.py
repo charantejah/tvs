@@ -1,13 +1,10 @@
 import requests
 import time
 from datetime import datetime
-import smtplib
-from email.mime.text import MIMEText
 
-# ===== EMAIL CONFIG =====
-EMAIL = "backup1charanteja@gmail.com"
-APP_PASSWORD = "xulmuaeqfmlardif" 
-TO_EMAIL = "charanteja1290@gmail.com"
+# ===== TELEGRAM CONFIG =====
+BOT_TOKEN = "8620495010:AAE339ct3WAg62O6BjTfqjI1iU2SFPvB9R4"
+CHAT_ID = "2059235733"
 
 # ===== PRODUCTS =====
 products = {
@@ -21,7 +18,7 @@ products = {
     "Rear Hugger Fender": "rear-hugger-fender"
 }
 
-# ===== ALERT LIST =====
+# ===== ALERT PRODUCTS =====
 watch_for_alert = {
     "Tank Guard",
     "Aluminium Bash Plate",
@@ -35,23 +32,18 @@ last_status = {}
 def log(msg):
     print(f"[{datetime.now().strftime('%H:%M:%S')}] {msg}")
 
-# ===== EMAIL FUNCTION (FIXED SMTP) =====
-def send_email(subject, body):
+# ===== TELEGRAM FUNCTION =====
+def send_telegram(message):
     try:
-        msg = MIMEText(body)
-        msg["Subject"] = subject
-        msg["From"] = EMAIL
-        msg["To"] = TO_EMAIL
-
-        with smtplib.SMTP("smtp.gmail.com", 587, timeout=10) as server:
-            server.starttls()
-            server.login(EMAIL, APP_PASSWORD)
-            server.send_message(msg)
-
-        log("📧 EMAIL SENT")
-
+        url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
+        data = {
+            "chat_id": CHAT_ID,
+            "text": message
+        }
+        requests.post(url, data=data, timeout=10)
+        log("📲 TELEGRAM SENT")
     except Exception as e:
-        log(f"❌ EMAIL FAILED: {e}")
+        log(f"❌ TELEGRAM ERROR: {e}")
 
 # ===== STOCK CHECK =====
 def check_stock(name, handle):
@@ -86,16 +78,15 @@ if __name__ == "__main__":
             if pname is not None:
                 cycle_changes.append((pname, status))
 
-                # ✅ EMAIL TRIGGER
+                # 🔔 ALERT
                 if status and pname in watch_for_alert:
                     log(f"🚨 ALERT TRIGGERED for {pname}")
 
-                    send_email(
-                        f"{pname} IN STOCK 🚀",
-                        f"{pname} is now available:\nhttps://shop.tvsmotor.com/products/{products[pname]}"
+                    send_telegram(
+                        f"{pname} IN STOCK 🚀\nhttps://shop.tvsmotor.com/products/{products[pname]}"
                     )
 
-        # ===== CLEAN LOG OUTPUT =====
+        # ===== CLEAN LOGS =====
         if cycle_changes:
             log("🔄 Changes detected:")
             for n, s in cycle_changes:
