@@ -3,7 +3,7 @@ import time
 from datetime import datetime
 
 # ===== TELEGRAM CONFIG =====
-BOT_TOKEN = "8620495010:AAE339ct3WAg62O6BjTfqjI1iU2SFPvB9R4"
+BOT_TOKEN = "YOUR_NEW_TOKEN"
 CHAT_ID = "2059235733"
 
 products = {
@@ -15,14 +15,14 @@ products = {
     "Visor Extender": "tvs-apache-rtx-visor-extender-enhanced-wind-protection-stylish-upgrade",
     "Raised Fender": "raised-fender-1",
     "Rear Hugger Fender": "rear-hugger-fender",
-    "top rack": "top-rack"
+    "Top Rack": "top-rack"
 }
 
 watch_for_alert = {
     "Tank Guard",
     "Aluminium Bash Plate",
     "Rear Hugger Fender",
-    "top rack"
+    "Top Rack"
 }
 
 def log(msg):
@@ -33,7 +33,8 @@ def send_telegram(message):
         url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
         data = {
             "chat_id": CHAT_ID,
-            "text": message
+            "text": message,
+            "disable_web_page_preview": True
         }
         requests.post(url, data=data, timeout=10)
         log("📲 TELEGRAM SENT")
@@ -46,9 +47,7 @@ def check_stock(name, handle):
         response = requests.get(url, timeout=10)
 
         data = response.json()
-        available = any(v.get("available", False) for v in data.get("variants", []))
-
-        return available
+        return any(v.get("available", False) for v in data.get("variants", []))
 
     except Exception as e:
         log(f"{name} ERROR: {e}")
@@ -60,6 +59,7 @@ if __name__ == "__main__":
 
     while True:
         available_items = []
+        message = "🔥 RTX 300 ACCESSORIES IN STOCK 🔥\n\n"
 
         for name, handle in products.items():
             status = check_stock(name, handle)
@@ -67,7 +67,11 @@ if __name__ == "__main__":
             if status:
                 available_items.append(name)
 
-                # 🚨 SPAM ALERT
+                # add to message
+                message += f"• {name}\n"
+                message += f"https://shop.tvsmotor.com/products/{handle}\n\n"
+
+                # 🚨 spam alert for priority items
                 if name in watch_for_alert:
                     log(f"🚨 SPAM ALERT for {name}")
 
@@ -75,11 +79,15 @@ if __name__ == "__main__":
                         f"{name} STILL IN STOCK 🚀\nhttps://shop.tvsmotor.com/products/{handle}"
                     )
 
-        # ===== CLEAN LOGS =====
+        # ===== SUMMARY MESSAGE =====
         if available_items:
             log("✅ Currently Available:")
             for item in available_items:
                 log(f"   {item}")
+
+            # send full list once per cycle
+            send_telegram(message)
+
         else:
             log("❌ Nothing in stock")
 
