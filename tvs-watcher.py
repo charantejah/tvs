@@ -14,7 +14,6 @@ products = {
     "Knuckle Guard": "tvs-apache-rtx-knuckle-guard",
     "Speedometer Scratch Guard": "tvs-apache-rtx-speedometer-scratch-guard-protect-your-ride-preserve-your-style",
     "USB Charger": "usb",
-    "Top Rack": "top-rack",
     "Visor Extender": "tvs-apache-rtx-visor-extender-enhanced-wind-protection-stylish-upgrade",
     "Raised Fender": "raised-fender-1",
     "Rear Hugger Fender": "rear-hugger-fender"
@@ -23,7 +22,8 @@ products = {
 watch_for_alert = {
     "Tank Guard",
     "Aluminium Bash Plate",
-    "Speedometer Scratch Guard"
+    "Speedometer Scratch Guard",
+    "Visor Extender"
 }
 
 last_status = {}
