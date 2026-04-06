@@ -1,11 +1,16 @@
 import requests
 import time
-from datetime import datetime
+import os
+from datetime import datetime, timedelta
 
-# ===== TELEGRAM CONFIG =====
-BOT_TOKEN = "8620495010:AAE339ct3WAg62O6BjTfqjI1iU2SFPvB9R4"
-CHAT_ID = "2059235733"
+# ===== ENV VARIABLES =====
+BOT_TOKEN = os.getenv("BOT_TOKEN")
+CHAT_ID = os.getenv("CHAT_ID")
 
+if not BOT_TOKEN or not CHAT_ID:
+    raise ValueError("Missing BOT_TOKEN or CHAT_ID in environment variables")
+
+# ===== PRODUCTS =====
 products = {
     "Tank Guard": "tank-guard",
     "Aluminium Bash Plate": "aluminium-bash-plate",
@@ -25,17 +30,40 @@ watch_for_alert = {
     "Top Rack"
 }
 
+# ===== STATE =====
 last_status = {}
 last_summary_time = time.time()
+last_update_id = None
 
+runtime_logs = []
+night_logs = []
 night_changes = set()
 night_summary_sent = False
-last_update_id = None  # 👈 for telegram polling
 
-# ===== UTILS =====
+# ===== TIME (IST) =====
+def get_ist_time():
+    return datetime.utcnow() + timedelta(hours=5, minutes=30)
+
+def is_night():
+    hour = get_ist_time().hour
+    return hour >= 23 or hour < 6
+
+# ===== LOGGER =====
 def log(msg):
-    print(f"[{datetime.now().strftime('%H:%M:%S')}] {msg}")
+    timestamp = get_ist_time().strftime('%H:%M:%S')
+    full = f"[{timestamp}] {msg}"
+    print(full)
 
+    runtime_logs.append(full)
+    if len(runtime_logs) > 50:
+        runtime_logs.pop(0)
+
+    if is_night():
+        night_logs.append(full)
+        if len(night_logs) > 100:
+            night_logs.pop(0)
+
+# ===== TELEGRAM =====
 def send_telegram(message):
     try:
         url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
@@ -48,11 +76,7 @@ def send_telegram(message):
     except Exception as e:
         log(f"❌ TELEGRAM ERROR: {e}")
 
-def is_night():
-    hour = datetime.now().hour
-    return hour >= 23 or hour < 6
-
-# ===== STOCK =====
+# ===== STOCK CHECK =====
 def check_stock(name, handle):
     url = f"https://shop.tvsmotor.com/products/{handle}.js"
     headers = {"User-Agent": "Mozilla/5.0"}
@@ -68,7 +92,7 @@ def check_stock(name, handle):
             continue
     return False
 
-# ===== TELEGRAM COMMAND LISTENER =====
+# ===== COMMANDS =====
 def check_commands():
     global last_update_id
 
@@ -84,33 +108,33 @@ def check_commands():
         for update in res.get("result", []):
             last_update_id = update["update_id"]
 
-            message = update.get("message", {})
-            text = message.get("text", "").lower()
+            text = update.get("message", {}).get("text", "").lower()
 
             if text == "logs":
-                log("📩 'logs' command received")
-
-                if night_changes:
-                    msg = "🌙 CURRENT NIGHT LOGS\n\n"
-                    for name in night_changes:
-                        msg += f"✅ {name}\nhttps://shop.tvsmotor.com/products/{products[name]}\n\n"
+                log("📩 logs requested")
+                if runtime_logs:
+                    send_telegram("\n".join(runtime_logs[-10:]))
                 else:
-                    msg = "🌙 No activity recorded tonight."
+                    send_telegram("No logs yet.")
 
-                send_telegram(msg)
+            elif text == "nlogs":
+                log("📩 nlogs requested")
+                if night_logs:
+                    send_telegram("🌙 NIGHT LOGS\n\n" + "\n".join(night_logs[-20:]))
+                else:
+                    send_telegram("🌙 No night logs yet.")
 
     except Exception as e:
         log(f"Command ERROR: {e}")
 
-# ===== MAIN =====
+# ===== MAIN LOOP =====
 if __name__ == "__main__":
     log("🚀 Tracker Started\n")
 
     while True:
-        current_status = {}
-
-        # 👂 listen for commands
         check_commands()
+
+        current_status = {}
 
         for name, handle in products.items():
             status = check_stock(name, handle)
@@ -118,6 +142,7 @@ if __name__ == "__main__":
 
             prev = last_status.get(name)
 
+            # 🔔 IMPORTANT ALERTS
             if name in watch_for_alert:
                 if prev is not None and prev != status:
                     send_telegram(
@@ -130,26 +155,28 @@ if __name__ == "__main__":
 
         last_status = current_status
 
-        # 🌅 6 AM NIGHT SUMMARY
+        # 🌅 NIGHT SUMMARY AT 6 AM
         if not is_night() and not night_summary_sent and night_changes:
             msg = "🌙 NIGHT SUMMARY\n\n"
             for name in night_changes:
                 msg += f"✅ {name}\nhttps://shop.tvsmotor.com/products/{products[name]}\n\n"
 
             send_telegram(msg)
+
             night_changes.clear()
+            night_logs.clear()
             night_summary_sent = True
 
         if is_night():
             night_summary_sent = False
 
-        # ☀️ DAY SUMMARY
+        # ☀️ DAY SUMMARY (30 MIN)
         if not is_night() and time.time() - last_summary_time >= 1800:
-            msg = f"📊 STOCK SUMMARY ({datetime.now().strftime('%H:%M:%S')})\n\n"
+            msg = f"📊 SUMMARY ({get_ist_time().strftime('%H:%M:%S')})\n\n"
 
             for name, handle in products.items():
                 status = current_status.get(name, False)
-                msg += f"{'✅' if status else '❌'} {name}\nhttps://shop.tvsmotor.com/products/{handle}\n\n"
+                msg += f"{'✅' if status else '❌'} {name}\n\n"
 
             send_telegram(msg)
             last_summary_time = time.time()
