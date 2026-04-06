@@ -1,7 +1,8 @@
 import requests
 import time
 import os
-from datetime import datetime, timedelta
+from datetime import datetime
+import zoneinfo
 
 # ===== ENV VARIABLES =====
 BOT_TOKEN = os.getenv("BOT_TOKEN")
@@ -9,6 +10,16 @@ CHAT_ID = os.getenv("CHAT_ID")
 
 if not BOT_TOKEN or not CHAT_ID:
     raise ValueError("Missing BOT_TOKEN or CHAT_ID in environment variables")
+
+# ===== TIMEZONE =====
+IST = zoneinfo.ZoneInfo("Asia/Kolkata")
+
+def get_ist_time():
+    return datetime.now(IST)
+
+def is_night():
+    hour = get_ist_time().hour
+    return hour >= 23 or hour < 6
 
 # ===== PRODUCTS =====
 products = {
@@ -39,14 +50,6 @@ runtime_logs = []
 night_logs = []
 night_changes = set()
 night_summary_sent = False
-
-# ===== TIME (IST) =====
-def get_ist_time():
-    return datetime.utcnow() + timedelta(hours=5, minutes=30)
-
-def is_night():
-    hour = get_ist_time().hour
-    return hour >= 23 or hour < 6
 
 # ===== LOGGER =====
 def log(msg):
@@ -92,7 +95,7 @@ def check_stock(name, handle):
             continue
     return False
 
-# ===== COMMANDS =====
+# ===== COMMAND HANDLER =====
 def check_commands():
     global last_update_id
 
@@ -142,7 +145,7 @@ if __name__ == "__main__":
 
             prev = last_status.get(name)
 
-            # 🔔 IMPORTANT ALERTS
+            # 🔔 ALERTS
             if name in watch_for_alert:
                 if prev is not None and prev != status:
                     send_telegram(
