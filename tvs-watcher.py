@@ -73,7 +73,7 @@ def log(msg):
             night_logs.pop(0)
 
 # ===== TELEGRAM =====
-def send(msg):
+def send(msg, no_preview=False):
     try:
         requests.post(
             f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage",
@@ -81,7 +81,7 @@ def send(msg):
                 "chat_id": CHAT_ID,
                 "text": msg,
                 "parse_mode": "Markdown",
-                "disable_web_page_preview": False
+                "disable_web_page_preview": no_preview
             },
             timeout=10
         )
@@ -143,7 +143,7 @@ if __name__ == "__main__":
         now = time.time()
         check_commands()
 
-        # ⚡ FAST CHECK (important items)
+        # ⚡ FAST CHECK
         if now - last_important_check >= IMPORTANT_INTERVAL:
             log("⚡ Fast check")
 
@@ -193,18 +193,42 @@ if __name__ == "__main__":
             if is_night():
                 night_summary_sent = False
 
-            # 📊 DAY SUMMARY
+            # 📊 SUMMARY WITH SMART PREVIEW
             if not is_night() and now - last_summary_time >= 1800:
-                msg = f"📊 *Stock Summary ({now_ist().strftime('%H:%M')})*\n\n"
+
+                available = []
+                unavailable = []
 
                 for n, h in products.items():
-                    s = current_status.get(n, False)
-                    msg += (
-                        f"{'🟢' if s else '🔴'} *{n}*\n"
-                        f"[View](https://shop.tvsmotor.com/products/{h})\n\n"
-                    )
+                    if current_status.get(n, False):
+                        available.append((n, h))
+                    else:
+                        unavailable.append((n, h))
 
-                send(msg)
+                msg = f"📊 *RTX STOCK SUMMARY ({now_ist().strftime('%H:%M')})*\n\n"
+
+                if available:
+                    # 👇 FIRST LINK AT TOP (FOR PREVIEW)
+                    first_name, first_handle = available[0]
+                    msg = f"https://shop.tvsmotor.com/products/{first_handle}\n\n" + msg
+
+                    msg += "*🟢 Available:*\n"
+                    for n, h in available:
+                        msg += f"• *{n}*\n👉 [View](https://shop.tvsmotor.com/products/{h})\n\n"
+
+                    msg += "*🔴 Out of Stock:*\n"
+                    for n, _ in unavailable:
+                        msg += f"• {n}\n"
+
+                    send(msg, no_preview=False)
+
+                else:
+                    msg += "*🔴 All items out of stock*\n\n"
+                    for n, _ in products.items():
+                        msg += f"• {n}\n"
+
+                    send(msg, no_preview=True)
+
                 last_summary_time = now
 
             last_normal_check = now
