@@ -41,7 +41,8 @@ watch_for_alert = {
     "Tank Guard",
     "Aluminium Bash Plate",
     "Rear Hugger Fender",
-    "Top Rack"
+    "Top Rack",
+    "Visor Extender"
 }
 
 # ===== STATE =====
