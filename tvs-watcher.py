@@ -40,7 +40,6 @@ products = {
 watch_for_alert = {
     "Tank Guard",
     "Aluminium Bash Plate",
-    "Rear Hugger Fender",
     "Top Rack",
     "Visor Extender"
 }
