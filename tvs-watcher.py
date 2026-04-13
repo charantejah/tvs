@@ -40,7 +40,9 @@ products = {
 watch_for_alert = {
     "Top Rack",
     "Visor Extender",
-    "Rear Hugger Fender"
+    "Rear Hugger Fender",
+    "Aluminium Bash Plate",
+    "Speedometer Scratch Guard"
 }
 
 # ===== STATE =====
