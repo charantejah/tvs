@@ -42,7 +42,8 @@ watch_for_alert = {
     "Visor Extender",
     "Rear Hugger Fender",
     "Aluminium Bash Plate",
-    "Speedometer Scratch Guard"
+    "Speedometer Scratch Guard",
+    "USB Charger"
 }
 
 # ===== STATE =====
